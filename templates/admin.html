@@ -1,0 +1,28 @@
+{{ define "body" }}
+<form>
+    {{ with .Result }}
+    <div>
+        {{ . }}
+    </div>
+    {{ end }}
+    {{ with .Students }}
+    <label>
+        <span>選擇學生</span>
+        <select name="student"> {{ range $index, $val := . }}
+            <option value="{{ .ID }}">{{ .StudentID }}</option> {{ end }}
+        </select>
+    </label>
+    {{ end }}
+
+    {{ with .Exam }}
+    <label>
+        <span>選擇題目</span>
+        <select name="exam"> {{ range $index, $val := . }}
+            <option value="{{ .ID }}">{{ .ID }}</option>{{ end }}
+        </select>
+    </label>
+    {{ end }}
+    <input type="hidden" value="ad@mIn123" name="key" />
+    <input type="submit" value="查詢" />
+</form>
+{{ end }}

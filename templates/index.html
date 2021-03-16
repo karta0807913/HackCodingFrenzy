@@ -1,0 +1,18 @@
+{{ define "body" }}
+<div>
+    {{ with .Error }}<div>{{ . }}</div> {{ end }}
+    <div>請輸入你的程設帳密</div>
+</div>
+<form method="POST" action="/index">
+    <label>
+        <span>帳號</span>
+        <input type="text" name="account" value="{{.Account}}"/>
+    </label>
+
+    <label>
+        <span>密碼</span>
+        <input type="password" name="password" />
+    </label>
+    <input type="submit" />
+</form>
+{{ end }}
