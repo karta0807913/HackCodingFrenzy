@@ -127,7 +127,7 @@ func (frenzy *FrenzyClient) Load49() ([]FrenzyItem, error) {
 	io.Copy(buffer, resp.Body)
 
 	items := make([]FrenzyItem, 0, 49)
-	re := regexp.MustCompile(`ITEM_GID:'([^']*)'[^：]*：([^<]*) <\/nobr>`)
+	re := regexp.MustCompile(`<nobr><span class=class=題號>[^I]*ITEM_GID:'([^']*)'[^：]*：([^<]*) <\/nobr>`)
 	for _, val := range re.FindAllStringSubmatch(buffer.String(), -1) {
 		items = append(items, FrenzyItem{
 			GID:  val[1],
