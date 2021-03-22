@@ -5,6 +5,8 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -102,14 +104,22 @@ func route(server *gin.Engine, db *gorm.DB) {
 				return
 			}
 
-			err = db.Clauses(clause.OnConflict{
-				Columns:   []clause.Column{{Name: "user_id"}, {Name: "exam_id"}},
-				DoUpdates: clause.Assignments(map[string]interface{}{"secret_key": secret}),
-			}).Create(&model.UserExam{
-				UserID:    userData.ID,
-				ExamID:    exam.ID,
-				SecretKey: secret,
-			}).Error
+			for {
+				err = db.Clauses(clause.OnConflict{
+					Columns:   []clause.Column{{Name: "user_id"}, {Name: "exam_id"}},
+					DoUpdates: clause.Assignments(map[string]interface{}{"secret_key": secret}),
+				}).Create(&model.UserExam{
+					UserID:    userData.ID,
+					ExamID:    exam.ID,
+					SecretKey: secret,
+				}).Error
+				if err == nil {
+					break
+				} else {
+					log.Println(err)
+					time.Sleep(time.Second * 1)
+				}
+			}
 		}
 		renderIndex(http.StatusOK, c, gin.H{
 			"Error": "成功拉，現在可以打開你的程式了",
@@ -134,7 +144,7 @@ func route(server *gin.Engine, db *gorm.DB) {
 		}
 		var students []model.UserData
 		var exam []model.ExamList
-		err = db.Find(&students).Error
+		err = db.Order("upper(student_id) asc").Find(&students).Error
 		if err != nil {
 			log.Println(err)
 			tpl.Execute(c.Writer, gin.H{
@@ -165,7 +175,8 @@ func route(server *gin.Engine, db *gorm.DB) {
 				log.Println(err)
 				result["Result"] = "紀錄未找到"
 			} else {
-				result["Result"] = "使用者 " + res.UserData.StudentID + " 題目 [" + res.ExamData.Name + "] 的secret是 " + res.SecretKey
+				result["Result"] = "使用者 " + res.UserData.StudentID + " 題目 [" + res.ExamData.Name + "] 的secret是 " + res.SecretKey + " 狀態是 " + strconv.Itoa(int(res.State))
+				result["ID"] = res.ID
 			}
 		}
 
@@ -175,6 +186,81 @@ func route(server *gin.Engine, db *gorm.DB) {
 		}
 
 	})
+
+	server.POST("/admin", func(c *gin.Context) {
+		tpl, err := template.ParseFiles("templates/layout.html", "templates/admin.html")
+		if err != nil {
+			log.Println(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Server error :<"})
+			return
+		}
+		type Body struct {
+			ID    uint   `form:"id" binding:"required"`
+			State uint   `form:"state" binding:"required"`
+			Key   string `form:"key" binding:"required"`
+		}
+
+		var body Body
+		err = c.ShouldBind(&body)
+		if err != nil {
+			log.Println(err)
+			renderIndex(http.StatusBadRequest, c, gin.H{
+				"Result": "請輸入資料",
+			})
+			return
+		}
+		if body.Key != "ad@mIn123" {
+			c.Redirect(http.StatusTemporaryRedirect, "/index")
+			return
+		}
+
+		var exam model.UserExam
+		exam.State = body.State
+		exam.ID = body.ID
+		err = db.Select("state").Updates(&exam).Error
+		if err != nil {
+			err = tpl.Execute(c.Writer, gin.H{
+				"Result": err.Error(),
+			})
+			if err != nil {
+				log.Println(err)
+			}
+			return
+		}
+		err = tpl.Execute(c.Writer, gin.H{
+			"Result": "資料更新成功為 " + strconv.Itoa(int(body.State)),
+		})
+		if err != nil {
+			log.Println(err)
+		}
+	})
+
+	server.GET("/overview", func(c *gin.Context) {
+		tpl, err := template.ParseFiles("templates/layout.html", "templates/form.html")
+		if err != nil {
+			log.Println(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Server error :<"})
+			return
+		}
+
+		var dataset []model.UserExam
+
+		err = db.Preload("UserData").Preload("ExamData").Find(&dataset).Error
+		if err != nil {
+			log.Println(err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": "QQ",
+			})
+			return
+		}
+		err = tpl.Execute(c.Writer, gin.H{
+			"DataSet": dataset,
+		})
+		if err != nil {
+			log.Println(err)
+		}
+	})
+
 	server.NoRoute(func(c *gin.Context) {
 		c.Redirect(http.StatusTemporaryRedirect, "/index")
 	})

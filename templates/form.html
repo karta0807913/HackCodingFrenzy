@@ -1,0 +1,53 @@
+{{ define "body" }}
+
+<style>
+ #main {
+     overflow: auto;
+ }
+</style>
+<table id="main">
+</table>
+
+<script>
+ let order_list = {{ with .DataSet }}{{ . }}{{ end }};
+ let decoded_map = new Map();
+ for(let exam_item of order_list) {
+     let student_id = exam_item.user_data.student_id;
+     let exam_map = decoded_map.get(student_id);
+     if(!exam_map) {
+         exam_map = new Map();
+         decoded_map.set(student_id, exam_map);
+     }
+     exam_map.set(exam_item.exam_data.id, exam_item);
+ }
+ let table = document.getElementById("main");
+ let row = table.insertRow();
+ row.insertCell().innerText = "帳號";
+ for(let i = 0; i < 49; i++) {
+     let cell = row.insertCell();
+     cell.innerText = i + 1;
+     cell.style = "text-align: center;";
+ }
+ for(let [ student_id, exam_map ] of decoded_map) {
+     let row = table.insertRow();
+     let cell = row.insertCell();
+     cell.innerText = student_id;
+     for(let i = 1; i < 50; ++i) {
+         let cell = row.insertCell();
+         let exam = exam_map.get(i);
+         if (exam) {
+             if(exam.state === 1) {
+                 cell.innerText = "已通過";
+                 cell.style = "color:#00FF00;white-space: nowrap;";
+             } else {
+                 cell.innerText = "未通過";
+                 cell.style = "white-space: nowrap;";
+             }
+         } else {
+             cell.innerText = "未找到題目";
+             cell.style = "background-color: #FF0000";
+         }
+     }
+ }
+</script>
+{{ end }}
