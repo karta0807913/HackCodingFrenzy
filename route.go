@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -59,6 +60,7 @@ func route(server *gin.Engine, db *gorm.DB) {
 			})
 			return
 		}
+		body.Account = strings.ToUpper(body.Account)
 		client, err := FrenzyLogin(body.Account, body.Password)
 		if err != nil {
 			renderIndex(http.StatusBadRequest, c, gin.H{
