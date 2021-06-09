@@ -28,7 +28,7 @@
 
 <form method="POST">
     <input type="hidden" value="ad@mIn123" name="key" />
-    <input id="id" value="{{ with .ID }}{{ . }}{{ end }}" name="id" />
+    <input id="id" value="{{ with .ID }}{{ . }}{{ end }}" name="id" readonly/>
     <select name="state">
         <option value="0">未完成</option>
         <option value="1">已完成</option>
